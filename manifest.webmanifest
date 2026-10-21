@@ -1,0 +1,10 @@
+{
+  "name": "Weekly Laser Cutting Report",
+  "short_name": "Laser Report",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fa",
+  "theme_color": "#17365d",
+  "description": "Daily laser production log and weekly Excel export",
+  "icons": []
+}

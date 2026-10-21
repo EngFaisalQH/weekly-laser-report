@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17365d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Laser Report">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Weekly Laser Report</title>
+<style>
+:root{--navy:#17365d;--blue:#4472c4;--bg:#f3f6fa;--ink:#1c2735;--muted:#64748b;--line:#dce4ee;--white:#fff;--green:#157347;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+header{background:linear-gradient(135deg,#17365d,#285b91);color:white;padding:24px 18px 22px;border-radius:0 0 22px 22px}
+header .eyebrow{font-size:11px;letter-spacing:1.5px;opacity:.8;font-weight:700}h1{font-size:23px;line-height:1.2;margin:8px 0 7px}header p{margin:0;font-size:13px;opacity:.86}
+main{max-width:760px;margin:0 auto;padding:16px 14px 36px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:0 0 16px}
+.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:13px 10px;box-shadow:0 2px 7px #17365d08}.stat span{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}.stat strong{display:block;font-size:22px;margin-top:5px;color:var(--navy)}
+.card{background:white;border:1px solid var(--line);border-radius:17px;padding:16px;margin-bottom:15px;box-shadow:0 3px 12px #17365d08}.card h2{font-size:16px;margin:0 0 15px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{min-width:0}.field.full{grid-column:1/-1}label{display:block;font-size:12px;font-weight:700;color:#455468;margin:0 0 6px}
+input,textarea{width:100%;font:inherit;font-size:16px;border:1px solid #cfd8e3;border-radius:10px;padding:11px 12px;background:#fff;color:var(--ink);outline:none}input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px #4472c420}textarea{min-height:78px;resize:vertical}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}button{border:0;border-radius:11px;padding:12px 14px;font-weight:750;font-size:14px;cursor:pointer}.primary{background:var(--navy);color:white;flex:1}.secondary{background:#e9eff8;color:var(--navy)}.export{background:#e3f4e9;color:#12653e}.share{background:#e8f2ff;color:#17365d}button:active{transform:scale(.99)}
+.list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.list-head h2{margin:0}.entry{border:1px solid var(--line);border-radius:13px;padding:13px;margin-top:9px;background:#fff}.entry-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.entry-title{font-weight:800;color:var(--navy);font-size:14px;overflow-wrap:anywhere}.entry-date{font-size:12px;color:var(--muted);margin-top:4px}.pills{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.pill{background:#edf3fb;color:#274e7a;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:700}.desc{font-size:13px;line-height:1.45;color:#4b5563;white-space:pre-wrap;overflow-wrap:anywhere}.entry-actions{display:flex;gap:7px;margin-top:10px}.small{font-size:12px;padding:8px 10px;border-radius:8px}.edit{background:#edf3fb;color:var(--navy)}.delete{background:#fff0ef;color:var(--red)}.empty{text-align:center;color:var(--muted);font-size:13px;padding:22px 8px}.note{font-size:11px;color:var(--muted);line-height:1.5;margin:10px 2px}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#15283e;color:white;padding:12px 16px;border-radius:12px;font-size:13px;box-shadow:0 6px 24px #0002;display:none;max-width:90%;z-index:5}
+@media(min-width:600px){header{padding:30px calc((100% - 720px)/2 + 20px)}main{padding-top:22px}.card{padding:20px}h1{font-size:28px}}@media(max-width:370px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.summary{gap:6px}.stat{padding:11px 7px}.stat strong{font-size:19px}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">PRODUCTION TRACKING</div><h1>Weekly Laser Cutting Report</h1><p>Daily production log · Weekly Excel export</p></header>
+<main>
+  <section class="summary">
+    <div class="stat"><span>Jobs This Week</span><strong id="totalOrders">0</strong></div>
+    <div class="stat"><span>Time (min)</span><strong id="totalTime">0</strong></div>
+    <div class="stat"><span>Sheets Used</span><strong id="totalSheets">0</strong></div>
+  </section>
+  <section class="card">
+    <h2 id="formHeading">Add Production Job</h2>
+    <form id="jobForm"><input type="hidden" id="editId">
+      <div class="grid">
+        <div class="field"><label for="date">Date *</label><input id="date" type="date" required></div>
+        <div class="field"><label>Day</label><input id="day" type="text" readonly placeholder="Auto-filled"></div>
+        <div class="field"><label for="salesOrder">Sales Order No. *</label><input id="salesOrder" type="text" placeholder="e.g. SO-10245" required></div>
+        <div class="field"><label for="product">Product Type / Model *</label><input id="product" type="text" placeholder="Product or model" required></div>
+        <div class="field"><label for="time">Time Taken (minutes) *</label><input id="time" type="number" min="0" step="0.1" placeholder="e.g. 45" required></div>
+        <div class="field"><label for="sheets">Sheets Used *</label><input id="sheets" type="number" min="0" step="1" placeholder="e.g. 3" required></div>
+        <div class="field full"><label for="description">Description</label><textarea id="description" placeholder="Optional notes about the job..."></textarea></div>
+      </div>
+      <div class="actions"><button class="primary" type="submit" id="saveButton">+ Save Job</button><button class="secondary" type="button" id="cancelEdit" hidden>Cancel Edit</button></div>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Weekly Report</h2>
+    <div class="grid">
+      <div class="field"><label for="weekStart">Week Start</label><input type="date" id="weekStart"></div>
+      <div class="field"><label for="weekEnd">Week End</label><input type="date" id="weekEnd"></div>
+    </div>
+    <div class="actions"><button class="export" id="exportBtn" type="button">Export This Week to Excel</button><button class="share" id="shareBtn" type="button">Share Excel</button></div>
+    <p class="note">Choose the week dates, then export or share the Excel report. The file includes only jobs within the selected date range.</p>
+  </section>
+  <section class="card">
+    <div class="list-head"><h2>Production Log</h2></div>
+    <div id="entries"><div class="empty">No jobs added yet. Enter your first production job above.</div></div>
+    <p class="note">Entries are saved in this browser on this device. Add this website to your iPhone Home Screen after it is published online. Export Excel weekly as a backup.</p>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),KEY="weeklyLaserReportJobs_v2";
+let jobs=[];try{jobs=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){jobs=[]}
+function isoLocal(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function dayName(iso){if(!iso)return "";return new Date(iso+"T12:00:00").toLocaleDateString("en-US",{weekday:"long"})}
+function prettyDate(iso){if(!iso)return "";return new Date(iso+"T12:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}
+function mondayOf(iso){let d=new Date((iso||isoLocal(new Date()))+"T12:00:00");let day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return isoLocal(d)}
+function sundayOf(start){let d=new Date(start+"T12:00:00");d.setDate(d.getDate()+6);return isoLocal(d)}
+function setDefaultDates(){let t=isoLocal(new Date()),m=mondayOf(t);$("date").value=t;$("day").value=dayName(t);$("weekStart").value=m;$("weekEnd").value=sundayOf(m)}
+function persist(){localStorage.setItem(KEY,JSON.stringify(jobs))}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+function toast(m){let e=$("toast");e.textContent=m;e.style.display="block";setTimeout(()=>e.style.display="none",2600)}
+function selectedJobs(){let a=$("weekStart").value,b=$("weekEnd").value;return jobs.filter(j=>j.date>=a&&j.date<=b)}
+function render(){
+ const current=selectedJobs();$("totalOrders").textContent=current.length;
+ $("totalTime").textContent=current.reduce((s,j)=>s+(Number(j.time)||0),0).toLocaleString("en-US",{maximumFractionDigits:1});
+ $("totalSheets").textContent=current.reduce((s,j)=>s+(Number(j.sheets)||0),0).toLocaleString("en-US");
+ let sorted=[...jobs].sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||0)-(a.createdAt||0));
+ $("entries").innerHTML=sorted.length?sorted.map(j=>`<article class="entry"><div class="entry-top"><div><div class="entry-title">${escapeHtml(j.product)}</div><div class="entry-date">${escapeHtml(prettyDate(j.date))} · ${escapeHtml(dayName(j.date))}</div></div><div class="pill">${escapeHtml(j.salesOrder)}</div></div><div class="pills"><span class="pill">${escapeHtml(j.time)} min</span><span class="pill">${escapeHtml(j.sheets)} sheets</span></div>${j.description?`<div class="desc">${escapeHtml(j.description)}</div>`:""}<div class="entry-actions"><button class="small edit" onclick="editJob('${j.id}')">Edit</button><button class="small delete" onclick="deleteJob('${j.id}')">Delete</button></div></article>`).join(""):'<div class="empty">No jobs added yet. Enter your first production job above.</div>';
+}
+$("date").addEventListener("change",()=>{$("day").value=dayName($("date").value)});
+$("weekStart").addEventListener("change",()=>{if($("weekStart").value&&(!$("weekEnd").value||$("weekEnd").value<$("weekStart").value))$("weekEnd").value=sundayOf($("weekStart").value);render()});
+$("weekEnd").addEventListener("change",render);
+$("jobForm").addEventListener("submit",e=>{e.preventDefault();let id=$("editId").value;let j={id:id||(crypto.randomUUID?crypto.randomUUID():String(Date.now())),date:$("date").value,salesOrder:$("salesOrder").value.trim(),product:$("product").value.trim(),time:Number($("time").value),sheets:Number($("sheets").value),description:$("description").value.trim(),createdAt:id?(jobs.find(x=>x.id===id)?.createdAt||Date.now()):Date.now()};if(id){jobs=jobs.map(x=>x.id===id?j:x);toast("Production job updated.")}else{jobs.push(j);toast("Production job saved.")}persist();render();resetForm()});
+function resetForm(){$("jobForm").reset();$("editId").value="";let t=isoLocal(new Date());$("date").value=t;$("day").value=dayName(t);$("formHeading").textContent="Add Production Job";$("saveButton").textContent="+ Save Job";$("cancelEdit").hidden=true}
+window.editJob=id=>{let j=jobs.find(x=>x.id===id);if(!j)return;$("editId").value=j.id;$("date").value=j.date;$("day").value=dayName(j.date);$("salesOrder").value=j.salesOrder;$("product").value=j.product;$("time").value=j.time;$("sheets").value=j.sheets;$("description").value=j.description;$("formHeading").textContent="Edit Production Job";$("saveButton").textContent="Save Changes";$("cancelEdit").hidden=false;window.scrollTo({top:0,behavior:"smooth"})};
+window.deleteJob=id=>{if(!confirm("Delete this production job?"))return;jobs=jobs.filter(j=>j.id!==id);persist();render();toast("Job deleted.")};
+$("cancelEdit").addEventListener("click",resetForm);
+function makeWorkbook(){
+ if(!window.XLSX)throw new Error("Excel export needs an internet connection.");
+ let selected=selectedJobs();if(!selected.length)throw new Error("No jobs found in the selected week.");
+ let data=selected.sort((a,b)=>a.date.localeCompare(b.date)).map(j=>({"Date":j.date,"Day":dayName(j.date),"Sales Order No.":j.salesOrder,"Product Type / Model":j.product,"Time Taken (Min)":j.time,"Sheets Used":j.sheets,"Description":j.description}));
+ let ws=XLSX.utils.json_to_sheet(data);ws["!cols"]=[{wch:15},{wch:15},{wch:22},{wch:30},{wch:20},{wch:15},{wch:42}];
+ let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Weekly Report");
+ let summary=[["WEEKLY LASER CUTTING PRODUCTION REPORT"],["Week Start", $("weekStart").value,"Week End",$("weekEnd").value],["Total Jobs",selected.length,"Total Time (Min)",selected.reduce((s,j)=>s+(Number(j.time)||0),0),"Total Sheets",selected.reduce((s,j)=>s+(Number(j.sheets)||0),0)]];
+ let sumws=XLSX.utils.aoa_to_sheet(summary);
+ sumws["!cols"]=[{wch:26},{wch:18},{wch:18},{wch:22},{wch:16},{wch:16}];
+ XLSX.utils.sheet_add_aoa(sumws,[["PREPARED BY"],["Eng. Faisal Al Qahtani"],["Production Engineer"]],{origin:"A5"});
+ sumws["!merges"]=[{s:{r:4,c:0},e:{r:4,c:5}},{s:{r:5,c:0},e:{r:5,c:5}},{s:{r:6,c:0},e:{r:6,c:5}}];
+ XLSX.utils.book_append_sheet(wb,sumws,"Summary");
+ return wb;
+}
+function filename(){return `Weekly_Laser_Cutting_Report_${$("weekStart").value}_to_${$("weekEnd").value}.xlsx`}
+$("exportBtn").addEventListener("click",()=>{try{XLSX.writeFile(makeWorkbook(),filename());toast("Weekly Excel report exported.")}catch(e){toast(e.message)}});
+$("shareBtn").addEventListener("click",async()=>{try{let wb=makeWorkbook(),out=XLSX.write(wb,{bookType:"xlsx",type:"array"}),file=new File([out],filename(),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Weekly Laser Cutting Report",text:"Weekly laser cutting production report"});toast("Share sheet opened.")}else{XLSX.writeFile(wb,filename());toast("Excel downloaded. Open Files to share it.")}}catch(e){if(e.name!=="AbortError")toast(e.message||"Could not share the report.")}});
+setDefaultDates();render();
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body></html>
