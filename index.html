@@ -40,7 +40,11 @@ input,textarea{width:100%;font:inherit;font-size:16px;border:1px solid #cfd8e3;b
         <div class="field"><label>Day</label><input id="day" type="text" readonly placeholder="Auto-filled"></div>
         <div class="field"><label for="salesOrder">Sales Order No. *</label><input id="salesOrder" type="text" placeholder="e.g. SO-10245" required></div>
         <div class="field"><label for="product">Product Type / Model *</label><input id="product" type="text" placeholder="Product or model" required></div>
-        <div class="field"><label for="time">Time Taken (minutes) *</label><input id="time" type="number" min="0" step="0.1" placeholder="e.g. 45" required></div>
+        <div class="field"><label for="requiredQty">Required Qty *</label><input id="requiredQty" type="number" min="0" step="1" placeholder="e.g. 500" required></div>
+        <div class="field"><label for="producedQty">Produced Qty *</label><input id="producedQty" type="number" min="0" step="1" placeholder="e.g. 320" required></div>
+        <div class="field"><label for="remainingQty">Remaining Qty</label><input id="remainingQty" type="number" readonly value="0"></div>
+        <div class="field"><label for="status">Production Status *</label><select id="status" required style="width:100%;font:inherit;font-size:16px;border:1px solid #cfd8e3;border-radius:10px;padding:11px 12px;background:#fff;color:var(--ink)"><option value="In Progress">In Progress</option><option value="Completed">Completed</option><option value="On Hold">On Hold</option></select></div>
+        <div class="field"><label for="time">Machine Run Time (minutes) *</label><input id="time" type="number" min="0" step="0.1" placeholder="e.g. 45" required></div>
         <div class="field"><label for="sheets">Sheets Used *</label><input id="sheets" type="number" min="0" step="1" placeholder="e.g. 3" required></div>
         <div class="field full"><label for="description">Description</label><textarea id="description" placeholder="Optional notes about the job..."></textarea></div>
       </div>
@@ -54,7 +58,7 @@ input,textarea{width:100%;font:inherit;font-size:16px;border:1px solid #cfd8e3;b
       <div class="field"><label for="weekEnd">Week End</label><input type="date" id="weekEnd"></div>
     </div>
     <div class="actions"><button class="export" id="exportBtn" type="button">Export This Week to Excel</button><button class="share" id="shareBtn" type="button">Share Excel</button></div>
-    <p class="note">Choose the week dates, then export or share the Excel report. The file includes only jobs within the selected date range.</p>
+    <p class="note">Track required and produced quantities, remaining balance, job status, machine run time, and sheets used. The Excel includes only jobs within the selected date range.</p>
   </section>
   <section class="card">
     <div class="list-head"><h2>Production Log</h2></div>
@@ -74,6 +78,9 @@ function mondayOf(iso){let d=new Date((iso||isoLocal(new Date()))+"T12:00:00");l
 function sundayOf(start){let d=new Date(start+"T12:00:00");d.setDate(d.getDate()+6);return isoLocal(d)}
 function setDefaultDates(){let t=isoLocal(new Date()),m=mondayOf(t);$("date").value=t;$("day").value=dayName(t);$("weekStart").value=m;$("weekEnd").value=sundayOf(m)}
 function persist(){localStorage.setItem(KEY,JSON.stringify(jobs))}
+function remaining(j){return Math.max(0,(Number(j.requiredQty)||0)-(Number(j.producedQty)||0))}
+function updateRemaining(){const req=Number($("requiredQty").value)||0,prod=Number($("producedQty").value)||0;$("remainingQty").value=Math.max(0,req-prod)}
+$("requiredQty").addEventListener("input",updateRemaining);$("producedQty").addEventListener("input",updateRemaining);
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
 function toast(m){let e=$("toast");e.textContent=m;e.style.display="block";setTimeout(()=>e.style.display="none",2600)}
 function selectedJobs(){let a=$("weekStart").value,b=$("weekEnd").value;return jobs.filter(j=>j.date>=a&&j.date<=b)}
@@ -82,27 +89,27 @@ function render(){
  $("totalTime").textContent=current.reduce((s,j)=>s+(Number(j.time)||0),0).toLocaleString("en-US",{maximumFractionDigits:1});
  $("totalSheets").textContent=current.reduce((s,j)=>s+(Number(j.sheets)||0),0).toLocaleString("en-US");
  let sorted=[...jobs].sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||0)-(a.createdAt||0));
- $("entries").innerHTML=sorted.length?sorted.map(j=>`<article class="entry"><div class="entry-top"><div><div class="entry-title">${escapeHtml(j.product)}</div><div class="entry-date">${escapeHtml(prettyDate(j.date))} · ${escapeHtml(dayName(j.date))}</div></div><div class="pill">${escapeHtml(j.salesOrder)}</div></div><div class="pills"><span class="pill">${escapeHtml(j.time)} min</span><span class="pill">${escapeHtml(j.sheets)} sheets</span></div>${j.description?`<div class="desc">${escapeHtml(j.description)}</div>`:""}<div class="entry-actions"><button class="small edit" onclick="editJob('${j.id}')">Edit</button><button class="small delete" onclick="deleteJob('${j.id}')">Delete</button></div></article>`).join(""):'<div class="empty">No jobs added yet. Enter your first production job above.</div>';
+ $("entries").innerHTML=sorted.length?sorted.map(j=>`<article class="entry"><div class="entry-top"><div><div class="entry-title">${escapeHtml(j.product)}</div><div class="entry-date">${escapeHtml(prettyDate(j.date))} · ${escapeHtml(dayName(j.date))}</div></div><div class="pill">${escapeHtml(j.salesOrder)}</div></div><div class="pills"><span class="pill">${escapeHtml(j.status||"In Progress")}</span><span class="pill">${escapeHtml(j.producedQty??0)} / ${escapeHtml(j.requiredQty??0)} pcs</span><span class="pill">${remaining(j)} remaining</span><span class="pill">${escapeHtml(j.time)} min</span><span class="pill">${escapeHtml(j.sheets)} sheets</span></div>${j.description?`<div class="desc">${escapeHtml(j.description)}</div>`:""}<div class="entry-actions"><button class="small edit" onclick="editJob('${j.id}')">Edit</button><button class="small delete" onclick="deleteJob('${j.id}')">Delete</button></div></article>`).join(""):'<div class="empty">No jobs added yet. Enter your first production job above.</div>';
 }
 $("date").addEventListener("change",()=>{$("day").value=dayName($("date").value)});
 $("weekStart").addEventListener("change",()=>{if($("weekStart").value&&(!$("weekEnd").value||$("weekEnd").value<$("weekStart").value))$("weekEnd").value=sundayOf($("weekStart").value);render()});
 $("weekEnd").addEventListener("change",render);
-$("jobForm").addEventListener("submit",e=>{e.preventDefault();let id=$("editId").value;let j={id:id||(crypto.randomUUID?crypto.randomUUID():String(Date.now())),date:$("date").value,salesOrder:$("salesOrder").value.trim(),product:$("product").value.trim(),time:Number($("time").value),sheets:Number($("sheets").value),description:$("description").value.trim(),createdAt:id?(jobs.find(x=>x.id===id)?.createdAt||Date.now()):Date.now()};if(id){jobs=jobs.map(x=>x.id===id?j:x);toast("Production job updated.")}else{jobs.push(j);toast("Production job saved.")}persist();render();resetForm()});
-function resetForm(){$("jobForm").reset();$("editId").value="";let t=isoLocal(new Date());$("date").value=t;$("day").value=dayName(t);$("formHeading").textContent="Add Production Job";$("saveButton").textContent="+ Save Job";$("cancelEdit").hidden=true}
-window.editJob=id=>{let j=jobs.find(x=>x.id===id);if(!j)return;$("editId").value=j.id;$("date").value=j.date;$("day").value=dayName(j.date);$("salesOrder").value=j.salesOrder;$("product").value=j.product;$("time").value=j.time;$("sheets").value=j.sheets;$("description").value=j.description;$("formHeading").textContent="Edit Production Job";$("saveButton").textContent="Save Changes";$("cancelEdit").hidden=false;window.scrollTo({top:0,behavior:"smooth"})};
+$("jobForm").addEventListener("submit",e=>{e.preventDefault();let id=$("editId").value;let j={id:id||(crypto.randomUUID?crypto.randomUUID():String(Date.now())),date:$("date").value,salesOrder:$("salesOrder").value.trim(),product:$("product").value.trim(),time:Number($("time").value),sheets:Number($("sheets").value),requiredQty:Number($("requiredQty").value),producedQty:Number($("producedQty").value),status:$("status").value,description:$("description").value.trim(),createdAt:id?(jobs.find(x=>x.id===id)?.createdAt||Date.now()):Date.now()};if(id){jobs=jobs.map(x=>x.id===id?j:x);toast("Production job updated.")}else{jobs.push(j);toast("Production job saved.")}persist();render();resetForm()});
+function resetForm(){$("jobForm").reset();$("remainingQty").value=0;$("editId").value="";let t=isoLocal(new Date());$("date").value=t;$("day").value=dayName(t);$("formHeading").textContent="Add Production Job";$("saveButton").textContent="+ Save Job";$("cancelEdit").hidden=true}
+window.editJob=id=>{let j=jobs.find(x=>x.id===id);if(!j)return;$("editId").value=j.id;$("date").value=j.date;$("day").value=dayName(j.date);$("salesOrder").value=j.salesOrder;$("product").value=j.product;$("time").value=j.time;$("sheets").value=j.sheets;$("requiredQty").value=j.requiredQty??0;$("producedQty").value=j.producedQty??0;$("remainingQty").value=remaining(j);$("status").value=j.status||"In Progress";$("description").value=j.description;$("formHeading").textContent="Edit Production Job";$("saveButton").textContent="Save Changes";$("cancelEdit").hidden=false;window.scrollTo({top:0,behavior:"smooth"})};
 window.deleteJob=id=>{if(!confirm("Delete this production job?"))return;jobs=jobs.filter(j=>j.id!==id);persist();render();toast("Job deleted.")};
 $("cancelEdit").addEventListener("click",resetForm);
 function makeWorkbook(){
  if(!window.XLSX)throw new Error("Excel export needs an internet connection.");
  let selected=selectedJobs();if(!selected.length)throw new Error("No jobs found in the selected week.");
- let data=selected.sort((a,b)=>a.date.localeCompare(b.date)).map(j=>({"Date":j.date,"Day":dayName(j.date),"Sales Order No.":j.salesOrder,"Product Type / Model":j.product,"Time Taken (Min)":j.time,"Sheets Used":j.sheets,"Description":j.description}));
- let ws=XLSX.utils.json_to_sheet(data);ws["!cols"]=[{wch:15},{wch:15},{wch:22},{wch:30},{wch:20},{wch:15},{wch:42}];
+ let data=selected.sort((a,b)=>a.date.localeCompare(b.date)).map(j=>({"Date":j.date,"Day":dayName(j.date),"Sales Order No.":j.salesOrder,"Product Type / Model":j.product,"Required Qty":j.requiredQty??0,"Produced Qty":j.producedQty??0,"Remaining Qty":remaining(j),"Production Status":j.status||"In Progress","Machine Run Time (Min)":j.time,"Sheets Used":j.sheets,"Description":j.description}));
+ let ws=XLSX.utils.json_to_sheet(data);ws["!cols"]=[{wch:15},{wch:15},{wch:22},{wch:30},{wch:15},{wch:15},{wch:15},{wch:18},{wch:23},{wch:15},{wch:42}];
  let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Weekly Report");
- let summary=[["WEEKLY LASER CUTTING PRODUCTION REPORT"],["Week Start", $("weekStart").value,"Week End",$("weekEnd").value],["Total Jobs",selected.length,"Total Time (Min)",selected.reduce((s,j)=>s+(Number(j.time)||0),0),"Total Sheets",selected.reduce((s,j)=>s+(Number(j.sheets)||0),0)]];
+ let summary=[["WEEKLY LASER CUTTING PRODUCTION REPORT"],["Week Start", $("weekStart").value,"Week End",$("weekEnd").value],["Total Jobs",selected.length,"Total Required Qty",selected.reduce((s,j)=>s+(Number(j.requiredQty)||0),0),"Total Produced Qty",selected.reduce((s,j)=>s+(Number(j.producedQty)||0),0)],["Total Remaining Qty",selected.reduce((s,j)=>s+remaining(j),0),"Total Machine Run Time (Min)",selected.reduce((s,j)=>s+(Number(j.time)||0),0),"Total Sheets",selected.reduce((s,j)=>s+(Number(j.sheets)||0),0)]];
  let sumws=XLSX.utils.aoa_to_sheet(summary);
  sumws["!cols"]=[{wch:26},{wch:18},{wch:18},{wch:22},{wch:16},{wch:16}];
- XLSX.utils.sheet_add_aoa(sumws,[["PREPARED BY"],["Eng. Faisal Al Qahtani"],["Production Engineer"]],{origin:"A5"});
- sumws["!merges"]=[{s:{r:4,c:0},e:{r:4,c:5}},{s:{r:5,c:0},e:{r:5,c:5}},{s:{r:6,c:0},e:{r:6,c:5}}];
+ XLSX.utils.sheet_add_aoa(sumws,[["PREPARED BY"],["Eng. Faisal Al Qahtani"],["Production Engineer"]],{origin:"A6"});
+ sumws["!merges"]=[{s:{r:5,c:0},e:{r:5,c:5}},{s:{r:6,c:0},e:{r:6,c:5}},{s:{r:7,c:0},e:{r:7,c:5}}];
  XLSX.utils.book_append_sheet(wb,sumws,"Summary");
  return wb;
 }
